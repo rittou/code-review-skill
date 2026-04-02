@@ -35,6 +35,7 @@ Use this workflow to review code like a strong senior engineer: understand inten
 - Load `references/performance-review.md` when scale, loops, queries, memory, caching, or throughput matter.
 - Load `references/code-cleanliness-review.md` when maintainability, structure, naming, or duplication are relevant.
 - Load `references/code-style-review.md` when repository conventions, formatting, or architecture rules matter.
+- Load `references/php-native-functions-review.md` when reviewing PHP collection handling, membership checks, deduplication, null semantics, or native-function composition.
 - Load `references/php-pcov-coverage.md` when the review touches PHP or the user asks for line coverage evidence.
 - Load `references/review-output-template.md` before writing the final review so the response shape stays consistent.
 

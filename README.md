@@ -9,6 +9,7 @@ It helps Codex review:
 - performance issues and trade-offs
 - code cleanliness
 - code style
+- PHP native-function usage and composition
 - PHP line coverage with PCOV
 
 ## Repository layout
@@ -26,6 +27,7 @@ review-code/
     ├── performance-review.md
     ├── code-cleanliness-review.md
     ├── code-style-review.md
+    ├── php-native-functions-review.md
     ├── php-pcov-coverage.md
     └── review-output-template.md
 ```
@@ -108,6 +110,7 @@ The deeper review guidance is split into maintainable domain references:
 - `references/performance-review.md`
 - `references/code-cleanliness-review.md`
 - `references/code-style-review.md`
+- `references/php-native-functions-review.md`
 - `references/php-pcov-coverage.md`
 - `references/review-output-template.md`
 
