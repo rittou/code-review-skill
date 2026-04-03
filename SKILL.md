@@ -43,6 +43,8 @@ Use this workflow to review code like a strong senior engineer: understand inten
 ### 5) Return review output
 
 - Use `references/review-output-template.md` as the default final response shape.
+- Capture the intended purpose of the change before summarizing merge risk.
+- Summarize the solution shape and meaningful trade-offs when they are clear from the diff or surrounding context.
 - Start with findings ordered by severity.
 - For each finding, include file and line, impact, evidence, and the smallest safe fix direction.
 - Separate confirmed defects from trade-offs, questions, suggestions, and style nits.

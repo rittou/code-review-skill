@@ -10,10 +10,17 @@ Use this reference right before writing the final review.
 - Omit empty sections instead of filling them with placeholders.
 - If there are no findings, use the clean-review template instead of pretending to have issues.
 - Use `Suggested code concepts` only when a small design direction would help the reader apply the review cleanly.
+- Keep the context sections short and evidence-based; do not invent product intent or architectural trade-offs that are not supported by the code or surrounding discussion.
 
 ## Full review template
 
 ```md
+## Context
+
+- purpose of the code: business change, technical refactor, bug fix, infrastructure change, or other short description
+- solution: short description of the implemented approach
+- trade-offs: short note about notable trade-offs, constraints, or `none identified`
+
 ## Findings
 
 1. [high|medium|low|nit] Short finding title
@@ -52,6 +59,12 @@ Use this reference right before writing the final review.
 ## Clean review template
 
 ```md
+## Context
+
+- purpose of the code: business change, technical refactor, bug fix, infrastructure change, or other short description
+- solution: short description of the implemented approach
+- trade-offs: short note about notable trade-offs, constraints, or `none identified`
+
 ## Findings
 
 No blocking findings identified.
@@ -76,5 +89,8 @@ No blocking findings identified.
 - Use `nit` for non-blocking polish or preference.
 - Convert uncertain concerns into `Open questions` instead of overstating them as defects.
 - If coverage was not measured, keep the section honest and short.
+- Keep `purpose of the code` focused on why the change exists, not just what files changed.
+- Keep `solution` descriptive enough that a reviewer can understand the implementation shape in one pass.
+- Use `trade-offs` for meaningful compromises, constraints, or follow-up costs; use `none identified` when nothing material stands out.
 - Keep `suggested code concepts` directional and practical: examples include clearer boundaries, strategy extraction, value objects, set-based lookups, composition seams, or narrower interfaces.
 - If the review was limited in scope, say so in `Summary`.
