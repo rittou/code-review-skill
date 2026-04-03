@@ -11,12 +11,15 @@ Use this reference right before writing the final review.
 - If there are no findings, use the clean-review template instead of pretending to have issues.
 - Use `Suggested code concepts` only when a small design direction would help the reader apply the review cleanly.
 - Keep the context sections short and evidence-based; do not invent product intent or architectural trade-offs that are not supported by the code or surrounding discussion.
+- When the review baseline is known, explain both the baseline and the actual change scope so the reader understands what was compared.
 
 ## Full review template
 
 ```md
 ## Context
 
+- review baseline: latest diff, commit range, base branch, or `not stated`
+- what changed against the baseline: short description of the changed scope
 - purpose of the code: business change, technical refactor, bug fix, infrastructure change, or other short description
 - solution: short description of the implemented approach
 - trade-offs: short note about notable trade-offs, constraints, or `none identified`
@@ -61,6 +64,8 @@ Use this reference right before writing the final review.
 ```md
 ## Context
 
+- review baseline: latest diff, commit range, base branch, or `not stated`
+- what changed against the baseline: short description of the changed scope
 - purpose of the code: business change, technical refactor, bug fix, infrastructure change, or other short description
 - solution: short description of the implemented approach
 - trade-offs: short note about notable trade-offs, constraints, or `none identified`
@@ -89,6 +94,8 @@ No blocking findings identified.
 - Use `nit` for non-blocking polish or preference.
 - Convert uncertain concerns into `Open questions` instead of overstating them as defects.
 - If coverage was not measured, keep the section honest and short.
+- Keep `review baseline` factual: name the base branch, commit range, or latest diff only when it is actually known.
+- Keep `what changed against the baseline` focused on the user-visible or code-structure delta, not a file dump.
 - Keep `purpose of the code` focused on why the change exists, not just what files changed.
 - Keep `solution` descriptive enough that a reviewer can understand the implementation shape in one pass.
 - Use `trade-offs` for meaningful compromises, constraints, or follow-up costs; use `none identified` when nothing material stands out.

@@ -44,6 +44,7 @@ Use this workflow to review code like a strong senior engineer: understand inten
 
 - Use `references/review-output-template.md` as the default final response shape.
 - Capture the intended purpose of the change before summarizing merge risk.
+- Capture what changed against the review baseline, such as the latest diff, commit range, or base branch, so the reader sees the scope in context.
 - Summarize the solution shape and meaningful trade-offs when they are clear from the diff or surrounding context.
 - Start with findings ordered by severity.
 - For each finding, include file and line, impact, evidence, and the smallest safe fix direction.
