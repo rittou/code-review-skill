@@ -1,6 +1,6 @@
 ---
 name: review-code
-description: Perform senior-style code reviews for source code, diffs, pull requests, and commits. Use when Codex needs to review logic, security, performance trade-offs, code cleanliness, code design and architecture, code style, or PHP PCOV line coverage, and return findings that are risk-first, evidence-based, and easy to act on.
+description: Perform senior-style code reviews for source code, diffs, pull requests, and commits. Use when Codex needs to review logic, security, performance trade-offs, code cleanliness, code design and architecture, code style, or test and coverage evidence across languages, and return findings that are risk-first, evidence-based, and easy to act on.
 ---
 
 # Review Code
@@ -37,7 +37,7 @@ Use this workflow to review code like a strong senior engineer: understand inten
 - Load `references/code-architecture-review.md` when boundaries, layering, dependency direction, extension points, or long-term changeability are relevant.
 - Load `references/code-style-review.md` when repository conventions, formatting, or architecture rules matter.
 - Load `references/native-functions-review.md` when reviewing standard-library collection handling, lookup structures, deduplication, key preservation, null semantics, or native-function composition across languages.
-- Load `references/php-pcov-coverage.md` when the review touches PHP or the user asks for line coverage evidence.
+- Load `references/test-coverage-review.md` when the review needs test and coverage evidence, changed-line confidence, or language-specific coverage tooling.
 - Load `references/review-output-template.md` before writing the final review so the response shape stays consistent.
 
 ### 5) Return review output
@@ -59,10 +59,10 @@ Use this workflow to review code like a strong senior engineer: understand inten
 
 - Keep the final review concise and decision-ready.
 - Use the full template when there are findings, and the clean-review template when there are none.
-- Include coverage only when it was measured or is materially missing.
+- Include test or coverage evidence only when it was measured or is materially missing.
 
 ## Example prompts
 
-- "Review this patch for logic bugs, security issues, performance regressions, code cleanliness, style, and PCOV coverage gaps."
-- "Use this skill to review the changed PHP files and tell me which touched lines are not covered."
+- "Review this patch for logic bugs, security issues, performance regressions, code cleanliness, style, and coverage gaps."
+- "Use this skill to review the changed files and tell me which touched lines are not covered."
 - "Review this PR like a senior engineer and separate confirmed defects from nits."

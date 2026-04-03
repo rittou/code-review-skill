@@ -11,7 +11,7 @@ It helps Codex review:
 - code design and architecture
 - code style
 - native-function usage and composition across languages
-- PHP line coverage with PCOV
+- test and coverage evidence across languages
 
 ## Repository layout
 
@@ -30,7 +30,7 @@ review-code/
     ├── code-architecture-review.md
     ├── code-style-review.md
     ├── native-functions-review.md
-    ├── php-pcov-coverage.md
+    ├── test-coverage-review.md
     └── review-output-template.md
 ```
 
@@ -47,7 +47,7 @@ Use $review-code at /absolute/path/to/review-code to review this patch.
 Example:
 
 ```text
-Use $review-code at /Users/your-name/code/review-code to review this PR for logic, security, performance, cleanliness, style, and PCOV coverage.
+Use $review-code at /Users/your-name/code/review-code to review this PR for logic, security, performance, cleanliness, style, and coverage evidence.
 ```
 
 ### Option 2: Install for auto-discovery
@@ -82,10 +82,10 @@ ln -s /path/to/review-code "${CODEX_HOME:-$HOME/.codex}/skills/review-code"
 Use $review-code to review this patch for logic bugs, security issues, performance regressions, cleanliness, style, and test coverage gaps.
 ```
 
-### Review a PHP change with coverage focus
+### Review a change with coverage focus
 
 ```text
-Use $review-code to review the changed PHP files and tell me which touched lines are not covered with PCOV.
+Use $review-code to review the changed files and tell me which touched lines are not covered.
 ```
 
 ### Review a PR like a senior engineer
@@ -114,11 +114,11 @@ The deeper review guidance is split into maintainable domain references:
 - `references/code-architecture-review.md`
 - `references/code-style-review.md`
 - `references/native-functions-review.md`
-- `references/php-pcov-coverage.md`
+- `references/test-coverage-review.md`
 - `references/review-output-template.md`
 
 ## Notes
 
 - The skill is designed to keep findings risk-first and evidence-based.
 - It prefers changed-line and branch-risk reasoning over percentage theater.
-- If PCOV is unavailable, the skill should report that clearly instead of inventing coverage claims.
+- If direct coverage tooling is unavailable, the skill should report that clearly instead of inventing coverage claims.
