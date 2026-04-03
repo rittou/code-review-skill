@@ -13,8 +13,9 @@ Use this workflow to review code like a strong senior engineer: understand inten
 
 - Determine the scope first: file, diff, commit, pull request, or branch.
 - Check for relevant MCP resources or templates first when they are available, and use them to load product, repository, domain, or integration context before reading code.
+- Look for business or product context early: feature intent, user workflow, policy constraints, operational goals, success metrics, or known trade-offs.
 - Prefer MCP-provided source-of-truth context over guessing from filenames or local fragments alone.
-- If no relevant MCP context is available, fall back to local code, tests, docs, and repository history.
+- If no relevant MCP context is available, fall back to local code, tests, docs, ADRs, tickets, PR descriptions, and repository history.
 - Read enough surrounding code to understand contracts, callers, side effects, and tests.
 - Confirm repository conventions before judging style, structure, or layering.
 
@@ -38,6 +39,7 @@ Use this workflow to review code like a strong senior engineer: understand inten
 - Load `references/performance-review.md` when scale, loops, queries, memory, caching, or throughput matter.
 - Load `references/code-cleanliness-review.md` when maintainability, structure, naming, or duplication are relevant.
 - Load `references/code-architecture-review.md` when boundaries, layering, dependency direction, extension points, or long-term changeability are relevant.
+- Load `references/business-context-review.md` when the review needs product intent, business rules, decision rationale, user impact, or operational context to judge the change fairly.
 - Load `references/code-style-review.md` when repository conventions, formatting, or architecture rules matter.
 - Load `references/native-functions-review.md` when reviewing standard-library collection handling, lookup structures, deduplication, key preservation, null semantics, or native-function composition across languages.
 - Load `references/test-coverage-review.md` when the review needs test and coverage evidence, changed-line confidence, or language-specific coverage tooling.

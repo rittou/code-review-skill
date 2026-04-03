@@ -5,6 +5,7 @@ Senior-style Codex skill for code review.
 It helps Codex review:
 
 - repository or product context from MCP resources when available
+- business context, product intent, and decision rationale before judging the code
 - code logic
 - security issues
 - performance issues and trade-offs
@@ -29,6 +30,7 @@ review-code/
     ├── performance-review.md
     ├── code-cleanliness-review.md
     ├── code-architecture-review.md
+    ├── business-context-review.md
     ├── code-style-review.md
     ├── native-functions-review.md
     ├── test-coverage-review.md
@@ -113,6 +115,7 @@ The deeper review guidance is split into maintainable domain references:
 - `references/performance-review.md`
 - `references/code-cleanliness-review.md`
 - `references/code-architecture-review.md`
+- `references/business-context-review.md`
 - `references/code-style-review.md`
 - `references/native-functions-review.md`
 - `references/test-coverage-review.md`
@@ -122,5 +125,6 @@ The deeper review guidance is split into maintainable domain references:
 
 - The skill is designed to keep findings risk-first and evidence-based.
 - It should check relevant MCP resources first when they are available, then fall back to local repository context.
+- It should gather enough business context to avoid calling a product-driven trade-off a defect without evidence.
 - It prefers changed-line and branch-risk reasoning over percentage theater.
 - If direct coverage tooling is unavailable, the skill should report that clearly instead of inventing coverage claims.
