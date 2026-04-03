@@ -8,6 +8,7 @@ It helps Codex review:
 - security issues
 - performance issues and trade-offs
 - code cleanliness
+- code design and architecture
 - code style
 - native-function usage and composition across languages
 - PHP line coverage with PCOV
@@ -26,6 +27,7 @@ review-code/
     ├── security-review.md
     ├── performance-review.md
     ├── code-cleanliness-review.md
+    ├── code-architecture-review.md
     ├── code-style-review.md
     ├── native-functions-review.md
     ├── php-pcov-coverage.md
@@ -109,6 +111,7 @@ The deeper review guidance is split into maintainable domain references:
 - `references/security-review.md`
 - `references/performance-review.md`
 - `references/code-cleanliness-review.md`
+- `references/code-architecture-review.md`
 - `references/code-style-review.md`
 - `references/native-functions-review.md`
 - `references/php-pcov-coverage.md`

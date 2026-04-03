@@ -1,6 +1,6 @@
 ---
 name: review-code
-description: Perform senior-style code reviews for source code, diffs, pull requests, and commits. Use when Codex needs to review logic, security, performance trade-offs, code cleanliness, code style, or PHP PCOV line coverage, and return findings that are risk-first, evidence-based, and easy to act on.
+description: Perform senior-style code reviews for source code, diffs, pull requests, and commits. Use when Codex needs to review logic, security, performance trade-offs, code cleanliness, code design and architecture, code style, or PHP PCOV line coverage, and return findings that are risk-first, evidence-based, and easy to act on.
 ---
 
 # Review Code
@@ -34,6 +34,7 @@ Use this workflow to review code like a strong senior engineer: understand inten
 - Load `references/security-review.md` when untrusted input, permissions, secrets, persistence, networking, templates, files, or execution paths are involved.
 - Load `references/performance-review.md` when scale, loops, queries, memory, caching, or throughput matter.
 - Load `references/code-cleanliness-review.md` when maintainability, structure, naming, or duplication are relevant.
+- Load `references/code-architecture-review.md` when boundaries, layering, dependency direction, extension points, or long-term changeability are relevant.
 - Load `references/code-style-review.md` when repository conventions, formatting, or architecture rules matter.
 - Load `references/native-functions-review.md` when reviewing standard-library collection handling, lookup structures, deduplication, key preservation, null semantics, or native-function composition across languages.
 - Load `references/php-pcov-coverage.md` when the review touches PHP or the user asks for line coverage evidence.
