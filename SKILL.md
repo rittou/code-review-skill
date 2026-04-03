@@ -12,6 +12,9 @@ Use this workflow to review code like a strong senior engineer: understand inten
 ### 1) Build context before commenting
 
 - Determine the scope first: file, diff, commit, pull request, or branch.
+- Check for relevant MCP resources or templates first when they are available, and use them to load product, repository, domain, or integration context before reading code.
+- Prefer MCP-provided source-of-truth context over guessing from filenames or local fragments alone.
+- If no relevant MCP context is available, fall back to local code, tests, docs, and repository history.
 - Read enough surrounding code to understand contracts, callers, side effects, and tests.
 - Confirm repository conventions before judging style, structure, or layering.
 

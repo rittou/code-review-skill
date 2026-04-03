@@ -4,6 +4,7 @@ Senior-style Codex skill for code review.
 
 It helps Codex review:
 
+- repository or product context from MCP resources when available
 - code logic
 - security issues
 - performance issues and trade-offs
@@ -120,5 +121,6 @@ The deeper review guidance is split into maintainable domain references:
 ## Notes
 
 - The skill is designed to keep findings risk-first and evidence-based.
+- It should check relevant MCP resources first when they are available, then fall back to local repository context.
 - It prefers changed-line and branch-risk reasoning over percentage theater.
 - If direct coverage tooling is unavailable, the skill should report that clearly instead of inventing coverage claims.
