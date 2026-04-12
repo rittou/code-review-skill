@@ -1,4 +1,4 @@
 interface:
   display_name: "Review Code"
-  short_description: "Review logic, security, performance, and coverage"
-  default_prompt: "Use $review-code to review this code for logic, security, performance, cleanliness, style, architecture, and test or coverage evidence."
+  short_description: "Review logic, security, performance, and runtime evidence"
+  default_prompt: "Use $review-code to review this code for logic, security, performance, cleanliness, style, architecture, and ticket-aligned test, coverage, or runtime evidence."

@@ -14,6 +14,7 @@ It helps Codex review:
 - code style
 - native-function usage and composition across languages
 - test and coverage evidence across languages
+- ticket-aligned real test evidence and Docker-based runtime validation when the project uses containers
 
 ## Repository layout
 
@@ -91,6 +92,12 @@ Use $review-code to review this patch for logic bugs, security issues, performan
 Use $review-code to review the changed files and tell me which touched lines are not covered.
 ```
 
+### Review a PR against the ticket with real tests
+
+```text
+Use $review-code to review this PR against the linked ticket, prefer Docker-based real tests, and tell me which behaviors are proven versus still unverified.
+```
+
 ### Review a PR like a senior engineer
 
 ```text
@@ -127,4 +134,7 @@ The deeper review guidance is split into maintainable domain references:
 - It should check relevant MCP resources first when they are available, then fall back to local repository context.
 - It should gather enough business context to avoid calling a product-driven trade-off a defect without evidence.
 - It prefers changed-line and branch-risk reasoning over percentage theater.
+- When the project is Docker-first, it should prefer Docker or Docker Compose entrypoints for real test and runtime validation.
+- It should decide setup intentionally: skip demo data for FE-only changes, prefer fresh demo data for BE-heavy paths, run indexing only when the ticket depends on it, and clean up review environments afterward by default.
+- It should tie real test selection back to the linked PR ticket or acceptance criteria whenever that context exists.
 - If direct coverage tooling is unavailable, the skill should report that clearly instead of inventing coverage claims.

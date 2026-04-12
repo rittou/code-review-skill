@@ -1,6 +1,6 @@
 ---
 name: review-code
-description: Perform senior-style code reviews for source code, diffs, pull requests, and commits. Use when Codex needs to review logic, security, performance trade-offs, code cleanliness, code design and architecture, code style, or test and coverage evidence across languages, and return findings that are risk-first, evidence-based, and easy to act on.
+description: Perform senior-style code reviews for source code, diffs, pull requests, and commits. Use when Codex needs to review logic, security, performance trade-offs, code cleanliness, code design and architecture, code style, or test, coverage, and runtime evidence across languages, and return findings that are risk-first, evidence-based, and easy to act on.
 ---
 
 # Review Code
@@ -16,7 +16,10 @@ Use this workflow to review code like a strong senior engineer: understand inten
 - Look for business or product context early: feature intent, user workflow, policy constraints, operational goals, success metrics, or known trade-offs.
 - Prefer MCP-provided source-of-truth context over guessing from filenames or local fragments alone.
 - If no relevant MCP context is available, fall back to local code, tests, docs, ADRs, tickets, PR descriptions, and repository history.
+- For pull requests, extract linked ticket scope or acceptance criteria early so review findings and test selection stay tied to the intended behavior.
 - Read enough surrounding code to understand contracts, callers, side effects, and tests.
+- Plan review-environment setup intentionally: decide whether the ticket path needs fresh demo data, indexing, or only a lightweight frontend/runtime boot.
+- When the project is Docker-first, prefer Docker or Docker Compose entrypoints, container definitions, and container logs over ad-hoc host commands.
 - Confirm repository conventions before judging style, structure, or layering.
 
 ### 2) Review in risk order
@@ -27,7 +30,8 @@ Use this workflow to review code like a strong senior engineer: understand inten
 
 ### 3) Gather evidence before concluding
 
-- Prefer concrete proof: failing tests, coverage output, execution traces, or file-and-line references.
+- Prefer concrete proof: failing tests, ticket-aligned real test runs, coverage output, container logs, execution traces, or file-and-line references.
+- When environment setup affected the result, record whether demo data, indexing, or cleanup steps were used.
 - Mark uncertain points as risks or open questions instead of confirmed defects.
 - Keep style and cleanliness findings separate from behavioral defects unless they create a real correctness or maintenance risk.
 
@@ -42,7 +46,7 @@ Use this workflow to review code like a strong senior engineer: understand inten
 - Load `references/business-context-review.md` when the review needs product intent, business rules, decision rationale, user impact, or operational context to judge the change fairly.
 - Load `references/code-style-review.md` when repository conventions, formatting, or architecture rules matter.
 - Load `references/native-functions-review.md` when reviewing standard-library collection handling, lookup structures, deduplication, key preservation, null semantics, or native-function composition across languages.
-- Load `references/test-coverage-review.md` when the review needs test and coverage evidence, changed-line confidence, or language-specific coverage tooling.
+- Load `references/test-coverage-review.md` when the review needs test and coverage evidence, changed-line confidence, ticket-aligned runtime validation, Docker-based verification, or language-specific coverage tooling.
 - Load `references/review-output-template.md` before writing the final review so the response shape stays consistent.
 
 ### 5) Return review output
@@ -53,6 +57,8 @@ Use this workflow to review code like a strong senior engineer: understand inten
 - Summarize the solution shape and meaningful trade-offs when they are clear from the diff or surrounding context.
 - Start with findings ordered by severity.
 - For each finding, include file and line, impact, evidence, and the smallest safe fix direction.
+- Tie test evidence back to the PR or ticket when possible: say which behavior was exercised, how it was measured, and whether it used real runtime validation or only static reasoning.
+- When runtime validation required setup steps, note whether fresh demo data, indexing, or environment cleanup were part of the measured path.
 - Separate confirmed defects from trade-offs, questions, suggestions, and style nits.
 - If no issues are found, say so explicitly and call out residual risk, missing tests, or unverified areas.
 
@@ -67,10 +73,11 @@ Use this workflow to review code like a strong senior engineer: understand inten
 
 - Keep the final review concise and decision-ready.
 - Use the full template when there are findings, and the clean-review template when there are none.
-- Include test or coverage evidence only when it was measured or is materially missing.
+- Include test, coverage, or runtime validation evidence only when it was measured or is materially missing.
 
 ## Example prompts
 
 - "Review this patch for logic bugs, security issues, performance regressions, code cleanliness, style, and coverage gaps."
 - "Use this skill to review the changed files and tell me which touched lines are not covered."
 - "Review this PR like a senior engineer and separate confirmed defects from nits."
+- "Review this PR against the linked ticket, prefer Docker-based real tests, and tell me which behaviors remain unverified."
