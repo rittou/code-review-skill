@@ -2,23 +2,9 @@
 
 Use this reference when reviewing Shopware core pull requests that need an isolated runtime environment per PR or ticket.
 
-## Goal
+For the full directory layout, ownership, lifecycle, and decision tables, load [qa-process.md](./qa-process.md).
 
-- Make one repeatable QA namespace per PR or ticket.
-- Keep the canonical Shopware checkout clean by using a named review-branch worktree as the build root.
-- Make Docker, OrbStack routing, and the database line up on the same slug so parallel QA runs do not collide.
-- Run data-dependent setup only after the Shopware setup or install flow succeeds.
-
-## Namespace model
-
-Use one slug everywhere, such as `pr-123-swag-456`.
-
-- Worktree root: `~/qa/pr-123-swag-456/worktree`
-- Compose project: `pr-123-swag-456`
-- OrbStack URL: `https://web.pr-123-swag-456.orb.local`
-- Database name: `pr_123_swag_456`
-
-This keeps code, containers, network names, volumes, cookies, and database state aligned to the same review namespace.
+This file is intentionally narrower than `qa-process.md`. It focuses on the `qa-env.sh` helper, the assumptions behind its generated environment, and the commands reviewers should use after setup.
 
 ## Isolation rules
 
@@ -31,46 +17,21 @@ This keeps code, containers, network names, volumes, cookies, and database state
 - Keep a managed block in the worktree's `.env.local` so CLI commands and local inspection reflect the same `APP_URL` and `DATABASE_URL`.
 - Avoid fixed localhost ports when OrbStack routing is available.
 
-## Setup profiles
+## Helper-specific profile behavior
 
-- `auto`: compare the PR ref against the merge-base with `origin/HEAD` or a caller-provided `--base-ref`. Frontend-only diffs resolve to `fe-light`; infrastructure-only backend diffs resolve to `be-light`; stateful backend or mixed diffs resolve to `be-fresh`; search or indexing-related diffs resolve to `search-indexed`.
-- `fe-light`: boot the environment and run setup only. No demo data or indexing by default.
-- `be-light`: boot the environment and run setup only for backend changes that look infrastructure-only, such as cache, dependency injection, or unit-test-level updates. No demo data or indexing by default.
-- `be-fresh`: boot, run setup, load demo data, then refresh DAL indexes. Treat indexing as mandatory whenever demo data is loaded.
-- `search-indexed`: same as `be-fresh`, used when the ticket path explicitly depends on indexed read models or search behavior.
+The helper resolves or respects these profiles:
 
-## Lifecycle
+- `auto`: detect the profile from the diff against `origin/HEAD` or a caller-provided `--base-ref`
+- `fe-light`: setup only, no demo data or indexing
+- `be-light`: setup only for infrastructure-style backend changes
+- `be-fresh`: setup plus demo data and index refresh
+- `search-indexed`: same as `be-fresh`, used when indexed or search-dependent behavior is involved
 
-1. Create a slug from the PR number, ticket key, or explicit override.
-2. Create a named review-branch worktree in a dedicated QA folder.
-3. Write `compose.override.yaml` and a managed `.env.local` block for that env with a unique `APP_URL` and `DATABASE_URL`.
-4. Run `docker compose -p <slug> up -d --build` from the worktree.
-5. Run setup commands such as `composer setup`.
-6. After setup succeeds, decide whether the ticket needs:
-   - demo data plus index refresh,
-   - or neither.
-7. Run the ticket-specific QA commands inside the app container.
-8. Save logs and notes as artifacts.
-9. Report the environment access details so the reviewer can keep using the env afterward:
-   - app URL,
-   - worktree path,
-   - compose project,
-   - database name,
-   - artifact paths such as `run.md`, `run.log`, and `changed-files.txt`.
-10. Handoff the review explicitly to the worktree by using the saved `QA_WORKTREE` path for all later repository inspection and by naming that path in the review result.
-11. Tear the environment down and remove the worktree when it is no longer needed.
-
-## Collision risks to avoid
-
-- Reusing the same compose project name across PRs.
-- Reusing the same `APP_URL`, which can mix browser cookies or sessions.
-- Reusing the same database name inside a shared DB service.
-- Hardcoding container names in Compose overrides.
-- Running multiple watcher stacks with the same host ports.
+For the reasoning behind those profiles, use the decision tables in [qa-process.md](./qa-process.md).
 
 ## Helper script
 
-Use [`scripts/qa-env.sh`](/Users/NFQ-phung.nguyen/life/code-review-skill/scripts/qa-env.sh) to automate the lifecycle.
+Use [../scripts/qa-env.sh](../scripts/qa-env.sh) to automate the lifecycle.
 
 Example:
 

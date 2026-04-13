@@ -37,6 +37,7 @@ shopware-review/
     ├── business-context-review.md
     ├── code-style-review.md
     ├── native-functions-review.md
+    ├── qa-process.md
     ├── shopware-core-qa.md
     ├── test-coverage-review.md
     └── review-output-template.md
@@ -114,13 +115,14 @@ The deeper review guidance is split into maintainable domain references:
 - `references/business-context-review.md`
 - `references/code-style-review.md`
 - `references/native-functions-review.md`
+- `references/qa-process.md`
 - `references/shopware-core-qa.md`
 - `references/test-coverage-review.md`
 - `references/review-output-template.md`
 
 ## Shopware Core QA Helper
 
-When the review targets Shopware core, the repository also ships [`scripts/qa-env.sh`](/Users/NFQ-phung.nguyen/life/code-review-skill/scripts/qa-env.sh). It creates one isolated QA namespace per PR or ticket:
+When the review targets Shopware core, the repository also ships [scripts/qa-env.sh](scripts/qa-env.sh). It creates one isolated QA namespace per PR or ticket:
 
 - named review-branch worktree at `~/qa/<slug>/worktree`
 - Docker Compose project name based on the same slug
