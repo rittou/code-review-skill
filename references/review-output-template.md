@@ -12,12 +12,14 @@ Use this reference right before writing the final review.
 - Use `Suggested code concepts` only when a small design direction would help the reader apply the review cleanly.
 - Keep the context sections short and evidence-based; do not invent product intent or architectural trade-offs that are not supported by the code or surrounding discussion.
 - When the review baseline is known, explain both the baseline and the actual change scope so the reader understands what was compared.
+- When an isolated QA environment was used, include `active review root` near the top of the response and set it to the generated worktree path.
 
 ## Full review template
 
 ```md
 ## Context
 
+- active review root: /abs/path/to/worktree | `not used`
 - review baseline: latest diff, commit range, base branch, or `not stated`
 - what changed against the baseline: short description of the changed scope
 - purpose of the code: business change, technical refactor, bug fix, infrastructure change, or other short description
@@ -64,6 +66,7 @@ Use this reference right before writing the final review.
 ```md
 ## Context
 
+- active review root: /abs/path/to/worktree | `not used`
 - review baseline: latest diff, commit range, base branch, or `not stated`
 - what changed against the baseline: short description of the changed scope
 - purpose of the code: business change, technical refactor, bug fix, infrastructure change, or other short description
@@ -95,6 +98,7 @@ No blocking findings identified.
 - Convert uncertain concerns into `Open questions` instead of overstating them as defects.
 - If coverage was not measured, keep the section honest and short.
 - Keep `review baseline` factual: name the base branch, commit range, or latest diff only when it is actually known.
+- When `active review root` is set, it should be the generated QA worktree path, not the original local checkout.
 - Keep `what changed against the baseline` focused on the user-visible or code-structure delta, not a file dump.
 - Keep `purpose of the code` focused on why the change exists, not just what files changed.
 - Keep `solution` descriptive enough that a reviewer can understand the implementation shape in one pass.

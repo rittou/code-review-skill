@@ -16,7 +16,7 @@ Use this guide when the review needs test or coverage evidence across languages.
 - Identify the linked ticket, PR description, or acceptance criteria before picking tests.
 - Confirm the project's primary test runner and existing coverage path.
 - Look for Dockerfiles, Compose files, make targets, or scripts that define how the app and tests normally run.
-- Decide whether the scenario needs fresh demo data, indexing, or neither before booting the review environment.
+- Decide whether the scenario needs fresh demo data or neither before booting the review environment. When demo data is needed, run indexing with it.
 - Look for existing coverage commands in package manifests, build files, CI workflows, or project docs before inventing a new command.
 - Prefer the smallest test slice that still exercises the touched lines.
 
@@ -82,7 +82,7 @@ php -dpcov.enabled=1 -dpcov.directory=. vendor/bin/phpunit --coverage-clover bui
 3. Prefer the smallest real test slice that still proves the ticket behavior, not just a nearby helper function.
 4. When the repository is containerized, build or start an isolated review container from the current code changes and run the selected scenario inside that environment.
 5. Apply setup only when the scenario needs it: skip demo data for frontend-only PRs, but prefer fresh demo data for backend, data-model, workflow, or integration changes that depend on realistic state.
-6. Run indexing only when the ticket path depends on search, derived read models, caches, or asynchronous projections that must be current for the scenario to be valid.
+6. If demo data was loaded, run indexing immediately after it. Even outside demo-data setup, run indexing whenever the ticket path depends on search, derived read models, caches, or asynchronous projections that must be current for the scenario to be valid.
 7. Use Playwright-style discipline even when Playwright itself is not the tool: establish the state, execute the user or system action, assert the observable outcome, and record what remained unverified.
 8. Clean up review containers, data, and ephemeral worktrees after the run unless the user explicitly wants the environment preserved for debugging.
 9. Report the exact command or runtime path that was measured so the review distinguishes measured behavior from inferred behavior.
@@ -101,7 +101,7 @@ php -dpcov.enabled=1 -dpcov.directory=. vendor/bin/phpunit --coverage-clover bui
 
 - `demo data`: use when the review scenario needs realistic entities, permissions, relationships, or workflow state. Skip it for frontend-only changes or other paths that can be proven with mocked or static data.
 - `fresh demo data`: prefer this for backend-heavy PRs, schema changes, seed-sensitive logic, or ticket paths that are easy to invalidate with stale state.
-- `indexing`: run only when the change affects search, filtering backed by an index, denormalized views, background projections, or any ticket path that depends on asynchronous derived data.
+- `indexing`: always run this together with demo data. Outside demo-data setup, also run it when the change affects search, filtering backed by an index, denormalized views, background projections, or any ticket path that depends on asynchronous derived data.
 - `cleanup`: treat cleanup as the default. Tear down containers, temporary volumes, and review worktrees after collecting evidence unless there is an explicit reason to preserve the environment.
 - Record which of these options were used so the review makes clear whether the evidence came from a fresh environment, a partial bootstrap, or a lightweight FE-only run.
 

@@ -1,4 +1,4 @@
 interface:
-  display_name: "Review Code"
-  short_description: "Review logic, security, performance, and runtime evidence"
-  default_prompt: "Use $review-code to review this code for logic, security, performance, cleanliness, style, architecture, and ticket-aligned test, coverage, or runtime evidence."
+  display_name: "Shopware Review"
+  short_description: "Review Shopware code or build isolated QA environments"
+  default_prompt: "Use $shopware-review to either review this Shopware code change with tests or build an isolated Shopware dev environment and return the environment access details."
