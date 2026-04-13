@@ -24,7 +24,7 @@ Each QA run lives under one slugged root such as `~/qa/pr-123-swag-456`.
 
 | Path | Role | Why it exists |
 | --- | --- | --- |
-| `~/qa/<slug>/worktree` | Active editable checkout for the QA run | This is the real Git worktree for the PR or ticket. It is where Docker builds from, where code should be inspected after handoff, and where follow-up fixes should continue if QA fails. |
+| `~/qa/<slug>/worktree` | Active editable checkout for the QA run | This is the real Git worktree for the PR or ticket. It is where Docker builds from, where code should be inspected after access, and where follow-up fixes should continue if QA fails. |
 | `~/qa/<slug>/artifacts` | Runtime evidence and human-readable output | Keeps `run.md`, `run.log`, and `changed-files.txt` together so the reviewer can see what was measured, what setup path was chosen, and what happened during boot or test runs. |
 | `~/qa/<slug>/env` | Machine-readable state and metadata | Stores `qa-env.env`, which is the source of truth for `QA_WORKTREE`, slug, branch, app URL, database name, and other values needed for later wrapper commands. |
 
@@ -33,8 +33,8 @@ Each QA run lives under one slugged root such as `~/qa/pr-123-swag-456`.
 | Item | Role | Why it exists |
 | --- | --- | --- |
 | Canonical repo | Source of Git objects and shared history | Keeps the main checkout clean while still letting worktrees share repository storage instead of cloning again. |
-| Source ref | The PR ref, branch, or commit the QA env starts from | Defines the baseline content under review. |
-| Review branch | Local named branch created inside the worktree | Makes follow-up fixes easier than detached HEAD because the same worktree can continue into commit and push flows. |
+| Source ref | The PR ref, branch, or commit the QA env starts from | Defines the baseline content under review. This can be something like `codex/bugbash-4642` or `origin/pull/123/head`. |
+| QA branch | Local named branch created inside the worktree | Makes follow-up fixes easier than detached HEAD because the same worktree can continue into commit and push flows. This intentionally differs from the source ref because it is the local branch used for QA follow-up work. |
 | Compose project | Docker namespace derived from the slug | Prevents container, volume, and network collisions across parallel QA runs. |
 | App URL | Slugged OrbStack URL | Keeps browser routing and cookies isolated per QA env. |
 | Database name | Slugged database/schema name | Prevents state collisions and makes debugging easier. |
@@ -52,13 +52,13 @@ The important detail is that `worktree/` is not a second independent clone. It i
 
 1. Start from the canonical Shopware repo and a source ref for the PR.
 2. Create a slugged QA namespace under `~/qa/<slug>`.
-3. Create `worktree/` on a named local review branch.
+3. Create `worktree/` on a named local QA branch.
 4. Write `env/qa-env.env` and `artifacts/run.md`.
 5. Generate `compose.override.yaml` and the managed `.env.local` block inside the worktree.
 6. Boot Docker from the worktree with the slugged Compose project.
 7. Run setup, optional demo data, and required indexing.
 8. Perform QA using the worktree-aware helper wrappers.
-9. If QA fails, continue fixes from the same worktree and same review branch.
+9. If QA fails, continue fixes from the same worktree and same QA branch.
 10. Reuse the same slug for retesting until the issue is resolved.
 11. Tear the env down when it is no longer needed.
 
@@ -68,11 +68,11 @@ The important detail is that `worktree/` is not a second independent clone. It i
 
 | Need | Location | Reason |
 | --- | --- | --- |
-| Edit or inspect the reviewed code | `worktree/` | This is the active checkout after handoff. |
-| Read the setup summary | `artifacts/run.md` | Human-readable overview of profile, paths, URL, DB, and handoff information. |
+| Edit or inspect the reviewed code | `worktree/` | This is the active checkout after access. |
+| Read the setup summary | `artifacts/run.md` | Human-readable overview of profile, paths, URL, DB, and access information. |
 | Read raw command output | `artifacts/run.log` | Shows the actual boot and command history. |
 | Inspect changed-file detection | `artifacts/changed-files.txt` | Records which files drove auto profile selection. |
-| Reload environment metadata in later commands | `env/qa-env.env` | Source of truth for slug, worktree path, review branch, app URL, and DB name. |
+| Reload environment metadata in later commands | `env/qa-env.env` | Source of truth for slug, worktree path, QA branch, app URL, and DB name. |
 
 ### Setup-profile decision table
 
@@ -88,30 +88,32 @@ The important detail is that `worktree/` is not a second independent clone. It i
 | QA result | Next location | Next action | Reason |
 | --- | --- | --- | --- |
 | QA passes | `artifacts/` + final review output | Report evidence and access details | No code changes are needed. |
-| QA fails and fix is needed | `worktree/` | Continue implementation on the local review branch | Keeps code, runtime env, and slug aligned for fast retest loops. |
+| QA fails and fix is needed | `worktree/` | Continue implementation on the local QA branch | Keeps code, runtime env, and slug aligned for fast retest loops. |
 | QA fails but cause is unclear | `artifacts/run.log` then `worktree/` | Inspect evidence first, then adjust code or setup | Avoid guessing while logs and metadata already exist. |
-| Env is no longer needed | `~/qa/<slug>` | Run `qa-env.sh down` | Cleans containers, metadata, and worktree together. |
+| Env is no longer needed | `~/qa/<slug>` | Run `qa-env.sh cleanup` | Cleans containers, metadata, and worktree together. |
 
 ### Branch decision table
 
 | Situation | Branch behavior | Reason |
 | --- | --- | --- |
-| New QA env | Create `review/<slug>` by default | Gives the worktree a real branch for follow-up fixes. |
+| New QA env | Create `qa/<slug>` by default | Gives the worktree a real branch for follow-up fixes. |
 | Explicit branch requested | Use `--branch <name>` | Allows matching an existing naming scheme. |
-| Same review branch already exists locally | Reuse it | Keeps repeated QA runs on the same follow-up branch. |
-| Need to publish fixes | Push the local review branch | Makes the worktree usable beyond QA-only inspection. |
+| Same QA branch already exists locally | Reuse it | Keeps repeated QA runs on the same follow-up branch. |
+| Need to publish fixes | Push the local QA branch | Makes the worktree usable beyond QA-only inspection. |
 
-## Working after handoff
+## Working after access
 
 After the QA env is created, do not go back to the canonical repo for review-time code inspection or runtime checks.
 
 Use:
 
-- `scripts/qa-env.sh handoff --slug <slug>`
-- `scripts/qa-env.sh repo --slug <slug> -- <command>`
+- `scripts/qa-env.sh access --slug <slug>`
+- `scripts/qa-env.sh run --slug <slug> -- <command>`
 - `scripts/qa-env.sh git --slug <slug> -- <git args>`
 - `scripts/qa-env.sh compose --slug <slug> -- <compose args>`
-- `scripts/qa-env.sh test --slug <slug> -- <command>`
+- `scripts/qa-env.sh app --slug <slug> -- <command>`
+- `scripts/qa-env.sh info --slug <slug>`
+- `scripts/qa-env.sh cleanup --slug <slug>`
 
 If QA shows the PR needs fixes, prefer a Codex session rooted at `worktree/`. That is the cleanest way to continue implementation while keeping the same env slug for retesting.
 

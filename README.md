@@ -8,7 +8,7 @@ Codex skill for two focused Shopware workflows:
 ## What is special here
 
 - one QA namespace per PR or ticket
-- named review-branch worktree at `~/qa/<slug>/worktree`
+- named QA-branch worktree at `~/qa/<slug>/worktree`
 - Docker, OrbStack URL, and database all use the same slug
 - demo data implies indexing when storefront visibility depends on it
 - the same worktree can continue into follow-up fixes and retesting
@@ -63,26 +63,26 @@ The core helper is [scripts/qa-env.sh](scripts/qa-env.sh).
 Typical flow:
 
 ```bash
-scripts/qa-env.sh up \
+scripts/qa-env.sh create \
   --repo ~/work/shopware-main \
   --ref origin/pull/123/head \
-  --branch review/pr-123-swag-456 \
+  --branch qa/pr-123-swag-456 \
   --pr 123 \
   --ticket SWAG-456
 
-scripts/qa-env.sh handoff --slug pr-123-swag-456
-scripts/qa-env.sh repo --slug pr-123-swag-456 -- pwd
+scripts/qa-env.sh access --slug pr-123-swag-456
+scripts/qa-env.sh run --slug pr-123-swag-456 -- pwd
 scripts/qa-env.sh git --slug pr-123-swag-456 -- status --short
 scripts/qa-env.sh compose --slug pr-123-swag-456 -- ps
-scripts/qa-env.sh test --slug pr-123-swag-456 -- bin/console about
-scripts/qa-env.sh down --slug pr-123-swag-456
+scripts/qa-env.sh app --slug pr-123-swag-456 -- bin/console about
+scripts/qa-env.sh cleanup --slug pr-123-swag-456
 ```
 
 The helper supports:
 
 - `auto`, `fe-light`, `be-light`, `be-fresh`, `search-indexed`
-- named review branches for follow-up fixes
-- handoff output with worktree path, branch, URL, DB, and next steps
+- named QA branches for follow-up fixes
+- access output with worktree path, branch, URL, DB, and next steps
 
 ## References
 

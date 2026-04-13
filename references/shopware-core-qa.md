@@ -8,9 +8,9 @@ This file is intentionally narrower than `qa-process.md`. It focuses on the `qa-
 
 ## Isolation rules
 
-- Create the worktree from the canonical Shopware repo on a named local review branch so follow-up fixes are easier to continue and publish.
+- Create the worktree from the canonical Shopware repo on a named local QA branch so follow-up fixes are easier to continue and publish.
 - Build and run Docker from the worktree itself. Do not create a second Shopware clone unless a repository-specific build process absolutely requires it.
-- After `scripts/qa-env.sh up` finishes, treat the generated worktree as the active QA source tree. Codex does not automatically move the thread cwd, so every follow-up code read, `git diff`, and `docker compose` command should use the helper wrappers and saved slug metadata instead of assuming the thread moved by itself.
+- After `scripts/qa-env.sh create` finishes, treat the generated worktree as the active QA source tree. Codex does not automatically move the thread cwd, so every follow-up code read, `git diff`, and `docker compose` command should use the helper wrappers and saved slug metadata instead of assuming the thread moved by itself.
 - If QA shows the PR needs follow-up implementation work, continue from that same worktree instead of switching back to the canonical repo. Prefer a Codex session rooted at the worktree for edits, and keep the same slug for retesting.
 - Always run `docker compose -p <slug> ...` so Docker resources stay namespaced.
 - Generate a `compose.override.yaml` in the worktree so the web service gets the slug-specific `APP_URL`, `DATABASE_URL`, and `SYMFONY_TRUSTED_PROXIES`, and so fixed host ports are removed for OrbStack routing.
@@ -36,19 +36,19 @@ Use [../scripts/qa-env.sh](../scripts/qa-env.sh) to automate the lifecycle.
 Example:
 
 ```bash
-scripts/qa-env.sh up \
+scripts/qa-env.sh create \
   --repo ~/work/shopware-main \
   --ref origin/pull/123/head \
-  --branch review/pr-123-swag-456 \
+  --branch qa/pr-123-swag-456 \
   --pr 123 \
   --ticket SWAG-456
 
-scripts/qa-env.sh handoff --slug pr-123-swag-456
-scripts/qa-env.sh repo --slug pr-123-swag-456 -- pwd
+scripts/qa-env.sh access --slug pr-123-swag-456
+scripts/qa-env.sh run --slug pr-123-swag-456 -- pwd
 scripts/qa-env.sh git --slug pr-123-swag-456 -- status --short
 scripts/qa-env.sh compose --slug pr-123-swag-456 -- ps
-scripts/qa-env.sh test --slug pr-123-swag-456 -- bin/console about
-scripts/qa-env.sh down --slug pr-123-swag-456
+scripts/qa-env.sh app --slug pr-123-swag-456 -- bin/console about
+scripts/qa-env.sh cleanup --slug pr-123-swag-456
 ```
 
 The script defaults to `composer setup`, `framework:demodata`, and `dal:refresh:index`, but lets the caller override those hooks for repository-specific needs.
@@ -59,9 +59,9 @@ The generated Compose override also aligns the MariaDB bootstrap database with t
 
 The helper also writes `artifacts/changed-files.txt` plus detection metadata into `artifacts/run.md`, so reviewers can see why a PR was treated as FE-only, backend-light, backend-fresh, or search-sensitive.
 
-The helper also writes a handoff section into `artifacts/run.md` that shows the active QA source tree, state file, and wrapper commands that should be used against the generated worktree rather than the original local checkout.
+The helper also writes an access section into `artifacts/run.md` that shows the active QA source tree, state file, source ref, QA branch, and wrapper commands that should be used against the generated worktree rather than the original local checkout.
 
-Use `scripts/qa-env.sh handoff --slug <slug>` when you want a short, copyable summary of the editable worktree path plus the wrapper commands for continuing review, runtime checks, or follow-up fixes.
+Use `scripts/qa-env.sh access --slug <slug>` when you want a short, copyable summary of the editable worktree path plus the wrapper commands for continuing review, runtime checks, or follow-up fixes.
 
 When presenting the QA result, always include the environment access summary. At minimum list:
 
