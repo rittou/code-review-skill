@@ -122,7 +122,7 @@ The deeper review guidance is split into maintainable domain references:
 
 When the review targets Shopware core, the repository also ships [`scripts/qa-env.sh`](/Users/NFQ-phung.nguyen/life/code-review-skill/scripts/qa-env.sh). It creates one isolated QA namespace per PR or ticket:
 
-- detached git worktree at `~/qa/<slug>/shopware`
+- named review-branch worktree at `~/qa/<slug>/worktree`
 - Docker Compose project name based on the same slug
 - OrbStack URL such as `https://web.<slug>.orb.local`
 - database name derived from the slug
@@ -131,6 +131,9 @@ When the review targets Shopware core, the repository also ships [`scripts/qa-en
 - indexing is always paired with demo data so seeded storefront data is actually visible
 - environment metadata and artifact files so the QA env can be accessed afterward without rediscovery
 - explicit handoff metadata so Codex can continue the review from the generated worktree instead of staying anchored to the original local checkout
+- explicit fix-continuation guidance so the same worktree can be used for follow-up code changes when QA fails
+- worktree-aware helper wrappers for `repo`, `git`, `compose`, and `test` so post-setup commands stay on the reviewing branch
+- a `handoff` helper command that prints the active worktree and the next-step commands for continuing review or fixes there
 
 This keeps parallel QA runs separated without creating an extra Shopware clone on top of the worktree.
 
@@ -140,9 +143,14 @@ Example:
 scripts/qa-env.sh up \
   --repo ~/work/shopware-main \
   --ref origin/pull/123/head \
+  --branch review/pr-123-swag-456 \
   --pr 123 \
   --ticket SWAG-456
 
+scripts/qa-env.sh handoff --slug pr-123-swag-456
+scripts/qa-env.sh repo --slug pr-123-swag-456 -- pwd
+scripts/qa-env.sh git --slug pr-123-swag-456 -- status --short
+scripts/qa-env.sh compose --slug pr-123-swag-456 -- ps
 scripts/qa-env.sh test --slug pr-123-swag-456 -- bin/console about
 scripts/qa-env.sh down --slug pr-123-swag-456
 ```
@@ -162,8 +170,9 @@ By default the helper uses `--profile auto`, compares the PR ref against `origin
 - It prefers changed-line and branch-risk reasoning over percentage theater.
 - When the project is Docker-first, it should prefer Docker or Docker Compose entrypoints for real test and runtime validation.
 - It should decide setup intentionally: skip demo data for FE-only and infrastructure-only backend changes, prefer fresh demo data for stateful BE paths, always run indexing together with demo data, and clean up review environments afterward by default.
-- For Shopware core, it should prefer one detached worktree per PR or ticket and use that worktree itself as the Docker build root.
-- After creating a Shopware core QA env, it should treat the generated worktree as the active review source tree and run later `git`, file, and Docker commands against that path explicitly.
+- For Shopware core, it should prefer one named review-branch worktree per PR or ticket and use that worktree itself as the Docker build root.
+- After creating a Shopware core QA env, it should treat the generated worktree as the active review source tree and use `scripts/qa-env.sh repo/git/compose/test` for later commands so the session stays on that reviewing branch.
+- If QA shows the PR needs changes, it should continue from that generated worktree as the editable checkout and reuse the same env slug for retesting.
 - When it creates a QA env, it should always list the access details afterward: URL, worktree path, compose project, DB name, and artifact locations.
 - When it creates a QA env, the final review should begin with `active review root: <worktree path>` so the handoff from local checkout to worktree is obvious.
 - It should tie real test selection back to the linked PR ticket or acceptance criteria whenever that context exists.

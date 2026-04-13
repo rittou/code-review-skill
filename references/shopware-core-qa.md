@@ -5,7 +5,7 @@ Use this reference when reviewing Shopware core pull requests that need an isola
 ## Goal
 
 - Make one repeatable QA namespace per PR or ticket.
-- Keep the canonical Shopware checkout clean by using a detached git worktree as the build root.
+- Keep the canonical Shopware checkout clean by using a named review-branch worktree as the build root.
 - Make Docker, OrbStack routing, and the database line up on the same slug so parallel QA runs do not collide.
 - Run data-dependent setup only after the Shopware setup or install flow succeeds.
 
@@ -13,7 +13,7 @@ Use this reference when reviewing Shopware core pull requests that need an isola
 
 Use one slug everywhere, such as `pr-123-swag-456`.
 
-- Worktree root: `~/qa/pr-123-swag-456/shopware`
+- Worktree root: `~/qa/pr-123-swag-456/worktree`
 - Compose project: `pr-123-swag-456`
 - OrbStack URL: `https://web.pr-123-swag-456.orb.local`
 - Database name: `pr_123_swag_456`
@@ -22,9 +22,10 @@ This keeps code, containers, network names, volumes, cookies, and database state
 
 ## Isolation rules
 
-- Create the worktree from the canonical Shopware repo with `git worktree add --detach`.
+- Create the worktree from the canonical Shopware repo on a named local review branch so follow-up fixes are easier to continue and publish.
 - Build and run Docker from the worktree itself. Do not create a second Shopware clone unless a repository-specific build process absolutely requires it.
-- After `scripts/qa-env.sh up` finishes, treat the generated worktree as the active QA source tree. Codex does not automatically move the thread cwd, so every follow-up code read, `git diff`, and `docker compose` command should target the saved worktree path or use the saved slug metadata.
+- After `scripts/qa-env.sh up` finishes, treat the generated worktree as the active QA source tree. Codex does not automatically move the thread cwd, so every follow-up code read, `git diff`, and `docker compose` command should use the helper wrappers and saved slug metadata instead of assuming the thread moved by itself.
+- If QA shows the PR needs follow-up implementation work, continue from that same worktree instead of switching back to the canonical repo. Prefer a Codex session rooted at the worktree for edits, and keep the same slug for retesting.
 - Always run `docker compose -p <slug> ...` so Docker resources stay namespaced.
 - Generate a `compose.override.yaml` in the worktree so the web service gets the slug-specific `APP_URL`, `DATABASE_URL`, and `SYMFONY_TRUSTED_PROXIES`, and so fixed host ports are removed for OrbStack routing.
 - Keep a managed block in the worktree's `.env.local` so CLI commands and local inspection reflect the same `APP_URL` and `DATABASE_URL`.
@@ -41,7 +42,7 @@ This keeps code, containers, network names, volumes, cookies, and database state
 ## Lifecycle
 
 1. Create a slug from the PR number, ticket key, or explicit override.
-2. Create a detached worktree in a dedicated QA folder.
+2. Create a named review-branch worktree in a dedicated QA folder.
 3. Write `compose.override.yaml` and a managed `.env.local` block for that env with a unique `APP_URL` and `DATABASE_URL`.
 4. Run `docker compose -p <slug> up -d --build` from the worktree.
 5. Run setup commands such as `composer setup`.
@@ -77,9 +78,14 @@ Example:
 scripts/qa-env.sh up \
   --repo ~/work/shopware-main \
   --ref origin/pull/123/head \
+  --branch review/pr-123-swag-456 \
   --pr 123 \
   --ticket SWAG-456
 
+scripts/qa-env.sh handoff --slug pr-123-swag-456
+scripts/qa-env.sh repo --slug pr-123-swag-456 -- pwd
+scripts/qa-env.sh git --slug pr-123-swag-456 -- status --short
+scripts/qa-env.sh compose --slug pr-123-swag-456 -- ps
 scripts/qa-env.sh test --slug pr-123-swag-456 -- bin/console about
 scripts/qa-env.sh down --slug pr-123-swag-456
 ```
@@ -92,7 +98,9 @@ The generated Compose override also aligns the MariaDB bootstrap database with t
 
 The helper also writes `artifacts/changed-files.txt` plus detection metadata into `artifacts/run.md`, so reviewers can see why a PR was treated as FE-only, backend-light, backend-fresh, or search-sensitive.
 
-The helper also writes a handoff section into `artifacts/run.md` that shows the active QA source tree, state file, and commands that should be run against the generated worktree rather than the original local checkout.
+The helper also writes a handoff section into `artifacts/run.md` that shows the active QA source tree, state file, and wrapper commands that should be used against the generated worktree rather than the original local checkout.
+
+Use `scripts/qa-env.sh handoff --slug <slug>` when you want a short, copyable summary of the editable worktree path plus the wrapper commands for continuing review, runtime checks, or follow-up fixes.
 
 When presenting the QA result, always include the environment access summary. At minimum list:
 

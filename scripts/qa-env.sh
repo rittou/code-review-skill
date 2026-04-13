@@ -21,6 +21,10 @@ RUN_LOG=""
 RUN_SUMMARY=""
 CURRENT_WORKTREE=""
 CURRENT_SLUG=""
+REMAINING_ARGS=()
+PARSED_BASE_DIR=""
+PARSED_SLUG=""
+PARSED_ENV_ROOT=""
 
 usage() {
   cat <<'EOF'
@@ -28,12 +32,20 @@ Create isolated Shopware core QA environments from git worktrees.
 
 Usage:
   qa-env.sh up --repo PATH --ref REF [options]
+  qa-env.sh handoff (--slug SLUG | --env-root PATH) [options]
+  qa-env.sh repo (--slug SLUG | --env-root PATH) -- COMMAND...
+  qa-env.sh git (--slug SLUG | --env-root PATH) -- GIT_ARGS...
+  qa-env.sh compose (--slug SLUG | --env-root PATH) -- COMPOSE_ARGS...
   qa-env.sh test (--slug SLUG | --env-root PATH) [options] -- COMMAND...
   qa-env.sh status (--slug SLUG | --env-root PATH) [options]
   qa-env.sh down (--slug SLUG | --env-root PATH) [options]
 
 Commands:
-  up      Create a detached worktree, generate per-env config, boot Docker, and run setup hooks.
+  up      Create a named review-branch worktree, generate per-env config, boot Docker, and run setup hooks.
+  handoff Print the active worktree plus the recommended next steps for continuing review or code fixes there.
+  repo    Run an arbitrary command with the generated worktree as the cwd.
+  git     Run `git -C <worktree> ...` for the generated worktree.
+  compose Run `docker compose -p <slug> ...` from the generated worktree.
   test    Run a command inside the app container for an existing env.
   status  Show metadata for an existing env and attempt `docker compose ps`.
   down    Stop Docker, remove the worktree, and clean up the env directory.
@@ -46,6 +58,7 @@ Common options:
 `up` options:
   --repo PATH            Canonical Shopware repo used to create the worktree. Required.
   --ref REF              Branch, tag, or commit to check out into the worktree. Required.
+  --branch NAME          Local review branch to use in the worktree. Default: review/<slug>
   --pr NUMBER            PR number used in slug generation.
   --ticket KEY           Ticket key used in slug generation.
   --profile NAME         One of: auto, fe-light, be-light, be-fresh, search-indexed. Default: auto
@@ -77,6 +90,10 @@ Common options:
 
 Examples:
   qa-env.sh up --repo ~/work/shopware-main --ref origin/trunk --pr 123 --ticket SWAG-456
+  qa-env.sh handoff --slug pr-123-swag-456
+  qa-env.sh repo --slug pr-123-swag-456 -- pwd
+  qa-env.sh git --slug pr-123-swag-456 -- status --short
+  qa-env.sh compose --slug pr-123-swag-456 -- ps
   qa-env.sh test --slug pr-123-swag-456 -- bin/console about
   qa-env.sh down --slug pr-123-swag-456
 EOF
@@ -99,6 +116,14 @@ sanitize_token() {
   local raw="${1:-}"
   raw="$(printf '%s' "$raw" | tr '[:upper:]' '[:lower:]')"
   raw="$(printf '%s' "$raw" | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//; s/-{2,}/-/g')"
+  printf '%s' "$raw"
+}
+
+sanitize_branch_name() {
+  local raw="${1:-}"
+
+  raw="$(printf '%s' "$raw" | tr '[:upper:]' '[:lower:]')"
+  raw="$(printf '%s' "$raw" | sed -E 's@[^a-z0-9._/-]+@-@g; s@/{2,}@/@g; s@^-+@@; s@-+$@@; s@^/+@@; s@/+$@@')"
   printf '%s' "$raw"
 }
 
@@ -159,6 +184,21 @@ build_db_name() {
   printf '%s' "$db_name"
 }
 
+build_review_branch() {
+  local explicit_branch="$1"
+  local slug="$2"
+  local branch_name=""
+
+  if [ -n "$explicit_branch" ]; then
+    branch_name="$(sanitize_branch_name "$explicit_branch")"
+  else
+    branch_name="review/$slug"
+  fi
+
+  [ -n "$branch_name" ] || die "Could not build a review branch. Provide --branch or a valid slug."
+  printf '%s' "$branch_name"
+}
+
 join_for_shell() {
   local joined=""
   local arg
@@ -191,6 +231,8 @@ write_state_file() {
     printf 'QA_PROFILE=%q\n' "$QA_PROFILE"
     printf 'QA_REPO=%q\n' "$QA_REPO"
     printf 'QA_REF=%q\n' "$QA_REF"
+    printf 'QA_REVIEW_BRANCH=%q\n' "$QA_REVIEW_BRANCH"
+    printf 'QA_BRANCH_STATE=%q\n' "$QA_BRANCH_STATE"
     printf 'QA_BASE_REF=%q\n' "$QA_BASE_REF"
     printf 'QA_MERGE_BASE=%q\n' "$QA_MERGE_BASE"
     printf 'QA_DETECTION_REASON=%q\n' "$QA_DETECTION_REASON"
@@ -226,7 +268,9 @@ write_summary_file() {
 - profile source: \`$QA_PROFILE_SOURCE\`
 - profile: \`$QA_PROFILE\`
 - repo: \`$QA_REPO\`
-- ref: \`$QA_REF\`
+- source ref: \`$QA_REF\`
+- review branch: \`$QA_REVIEW_BRANCH\`
+- branch state: \`$QA_BRANCH_STATE\`
 - base ref: \`$QA_BASE_REF\`
 - merge base: \`$QA_MERGE_BASE\`
 - worktree: \`$QA_WORKTREE\`
@@ -246,6 +290,7 @@ write_summary_file() {
 
 - app url: [$QA_APP_URL]($QA_APP_URL)
 - worktree path: \`$QA_WORKTREE\`
+- review branch: \`$QA_REVIEW_BRANCH\`
 - compose project: \`$QA_COMPOSE_PROJECT\`
 - database name: \`$QA_DB_NAME\`
 - compose override: [compose.override.yaml]($QA_COMPOSE_OVERRIDE)
@@ -258,16 +303,27 @@ write_summary_file() {
 ## Worktree Handoff
 
 - active QA source tree: \`$QA_WORKTREE\`
+- active review branch: \`$QA_REVIEW_BRANCH\`
 - do not continue the review from the original local checkout after setup
 - state file: [qa-env.env]($QA_METADATA_DIR/qa-env.env)
-- review commands should target the worktree explicitly, for example:
-  - \`git -C "$QA_WORKTREE" status --short\`
-  - \`git -C "$QA_WORKTREE" diff "$QA_BASE_REF...$QA_REF"\`
-  - \`docker compose -p "$QA_COMPOSE_PROJECT" -f "$QA_WORKTREE/compose.yaml" -f "$QA_COMPOSE_OVERRIDE" ps\`
+- continue with the helper wrappers so commands cannot drift back to the original checkout, for example:
+  - \`scripts/qa-env.sh repo --slug "$QA_SLUG" -- pwd\`
+  - \`scripts/qa-env.sh git --slug "$QA_SLUG" -- status --short\`
+  - \`scripts/qa-env.sh git --slug "$QA_SLUG" -- switch "$QA_REVIEW_BRANCH"\`
+  - \`scripts/qa-env.sh git --slug "$QA_SLUG" -- diff "$QA_BASE_REF...$QA_REF"\`
+  - \`scripts/qa-env.sh compose --slug "$QA_SLUG" -- ps\`
+
+## Fix Continuation
+
+- if QA shows the PR does not satisfy the requirements, treat \`$QA_WORKTREE\` as the editable follow-up checkout
+- for code changes, prefer opening a Codex session rooted at \`$QA_WORKTREE\`, which is already on local review branch \`$QA_REVIEW_BRANCH\`
+- keep reusing the same slug \`$QA_SLUG\` for runtime checks so fixes are verified against the same environment
+- while staying in the current thread, use the helper wrappers for runtime actions and reference files from \`$QA_WORKTREE\`
+- to publish follow-up work on a separate branch, push \`$QA_REVIEW_BRANCH\` from the worktree when ready
 
 ## Lifecycle
 
-1. Create detached worktree at \`$QA_WORKTREE\`
+1. Create worktree at \`$QA_WORKTREE\` on local review branch \`$QA_REVIEW_BRANCH\`
 2. Write \`compose.override.yaml\` and a managed \`.env.local\` block for this PR env
 3. Run \`docker compose -p $QA_COMPOSE_PROJECT up -d --build\`
 4. Run setup and optional post-setup hooks
@@ -372,12 +428,20 @@ resolve_modes_from_profile() {
       die "Internal error: profile should be resolved before mode selection."
       ;;
     fe-light | be-light)
-      [ "$QA_DEMODATA_MODE" = "auto" ] && QA_DEMODATA_MODE="never"
-      [ "$QA_INDEXING_MODE" = "auto" ] && QA_INDEXING_MODE="never"
+      if [ "$QA_DEMODATA_MODE" = "auto" ]; then
+        QA_DEMODATA_MODE="never"
+      fi
+      if [ "$QA_INDEXING_MODE" = "auto" ]; then
+        QA_INDEXING_MODE="never"
+      fi
       ;;
     be-fresh | search-indexed)
-      [ "$QA_DEMODATA_MODE" = "auto" ] && QA_DEMODATA_MODE="always"
-      [ "$QA_INDEXING_MODE" = "auto" ] && QA_INDEXING_MODE="always"
+      if [ "$QA_DEMODATA_MODE" = "auto" ]; then
+        QA_DEMODATA_MODE="always"
+      fi
+      if [ "$QA_INDEXING_MODE" = "auto" ]; then
+        QA_INDEXING_MODE="always"
+      fi
       ;;
     *)
       die "Unsupported profile: $QA_PROFILE"
@@ -610,6 +674,8 @@ load_state_from_args() {
   : "${QA_COMPOSE_OVERRIDE:=$QA_WORKTREE/compose.override.yaml}"
   : "${QA_PROFILE_REQUESTED:=$QA_PROFILE}"
   : "${QA_PROFILE_SOURCE:=unknown}"
+  : "${QA_REVIEW_BRANCH:=unknown}"
+  : "${QA_BRANCH_STATE:=unknown}"
   : "${QA_BASE_REF:=not-recorded}"
   : "${QA_MERGE_BASE:=not-recorded}"
   : "${QA_DETECTION_REASON:=not-recorded}"
@@ -623,10 +689,50 @@ load_state_from_args() {
   CURRENT_SLUG="$QA_SLUG"
 }
 
+parse_env_selector_args() {
+  local base_dir="$DEFAULT_BASE_DIR"
+  local slug=""
+  local env_root=""
+
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --base-dir)
+        base_dir="$2"
+        shift 2
+        ;;
+      --slug)
+        slug="$2"
+        shift 2
+        ;;
+      --env-root)
+        env_root="$2"
+        shift 2
+        ;;
+      --)
+        shift
+        break
+        ;;
+      -h | --help)
+        usage
+        exit 0
+        ;;
+      *)
+        break
+        ;;
+    esac
+  done
+
+  PARSED_BASE_DIR="$base_dir"
+  PARSED_SLUG="$slug"
+  PARSED_ENV_ROOT="$env_root"
+  REMAINING_ARGS=("$@")
+}
+
 cmd_up() {
   local base_dir="$DEFAULT_BASE_DIR"
   local repo=""
   local ref=""
+  local review_branch=""
   local explicit_slug=""
   local pr_number=""
   local ticket=""
@@ -668,6 +774,10 @@ cmd_up() {
         ;;
       --ref)
         ref="$2"
+        shift 2
+        ;;
+      --branch)
+        review_branch="$2"
         shift 2
         ;;
       --slug)
@@ -769,16 +879,18 @@ cmd_up() {
   fi
 
   QA_SLUG="$(build_slug "$explicit_slug" "$pr_number" "$ticket" "$ref")"
+  QA_REVIEW_BRANCH="$(build_review_branch "$review_branch" "$QA_SLUG")"
   QA_DB_NAME="$(build_db_name "$QA_SLUG")"
   QA_APP_URL="${QA_APP_URL:-${DEFAULT_APP_SCHEME}://${DEFAULT_APP_HOST_PREFIX}.${QA_SLUG}.orb.local}"
   QA_ENV_ROOT="$base_dir/$QA_SLUG"
-  QA_WORKTREE="$QA_ENV_ROOT/shopware"
+  QA_WORKTREE="$QA_ENV_ROOT/worktree"
   QA_ARTIFACTS_DIR="$QA_ENV_ROOT/artifacts"
   QA_METADATA_DIR="$QA_ENV_ROOT/env"
   QA_COMPOSE_OVERRIDE="$QA_WORKTREE/compose.override.yaml"
   QA_COMPOSE_PROJECT="$QA_SLUG"
   QA_REPO="$repo"
   QA_REF="$ref"
+  QA_BRANCH_STATE="pending"
   QA_BASE_REF="$base_ref"
   QA_PR_NUMBER="$pr_number"
   QA_TICKET="$ticket"
@@ -811,17 +923,29 @@ cmd_up() {
 
   resolve_modes_from_profile
   enforce_mode_constraints
+  write_state_file "$QA_METADATA_DIR/qa-env.env"
+  write_summary_file "$RUN_SUMMARY"
 
-  run_in_dir_logged "$QA_REPO" git worktree add --detach "$QA_WORKTREE" "$QA_REF"
+  if git -C "$QA_REPO" rev-parse --verify --quiet "refs/heads/$QA_REVIEW_BRANCH" >/dev/null 2>&1; then
+    QA_BRANCH_STATE="reused"
+    run_in_dir_logged "$QA_REPO" git worktree add "$QA_WORKTREE" "$QA_REVIEW_BRANCH"
+  else
+    QA_BRANCH_STATE="created"
+    run_in_dir_logged "$QA_REPO" git worktree add -b "$QA_REVIEW_BRANCH" "$QA_WORKTREE" "$QA_REF"
+  fi
+  write_state_file "$QA_METADATA_DIR/qa-env.env"
+  write_summary_file "$RUN_SUMMARY"
   write_compose_override "$QA_COMPOSE_OVERRIDE"
   write_env_local "$QA_WORKTREE/.env.local"
 
   run_in_dir_logged "$QA_WORKTREE" docker compose -p "$QA_SLUG" up -d --build
 
   local setup_command
-  for setup_command in "${setup_commands[@]}"; do
-    run_in_app_logged "$setup_command"
-  done
+  if [ "${#setup_commands[@]}" -gt 0 ]; then
+    for setup_command in "${setup_commands[@]}"; do
+      run_in_app_logged "$setup_command"
+    done
+  fi
 
   if [ "$QA_DEMODATA_MODE" = "always" ]; then
     run_in_app_logged "$demodata_command"
@@ -832,12 +956,97 @@ cmd_up() {
   fi
 
   local after_command
-  for after_command in "${after_setup_commands[@]}"; do
-    run_in_app_logged "$after_command"
-  done
+  if [ "${#after_setup_commands[@]}" -gt 0 ]; then
+    for after_command in "${after_setup_commands[@]}"; do
+      run_in_app_logged "$after_command"
+    done
+  fi
+
+  write_state_file "$QA_METADATA_DIR/qa-env.env"
+  write_summary_file "$RUN_SUMMARY"
 
   log "QA env ready: $QA_APP_URL"
   log "Metadata: $RUN_SUMMARY"
+}
+
+cmd_handoff() {
+  local base_dir="$DEFAULT_BASE_DIR"
+  local slug=""
+  local env_root=""
+
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --base-dir)
+        base_dir="$2"
+        shift 2
+        ;;
+      --slug)
+        slug="$2"
+        shift 2
+        ;;
+      --env-root)
+        env_root="$2"
+        shift 2
+        ;;
+      -h | --help)
+        usage
+        exit 0
+        ;;
+      *)
+        die "Unknown option for handoff: $1"
+        ;;
+    esac
+  done
+
+  load_state_from_args "$base_dir" "$slug" "$env_root"
+
+  cat <<EOF
+active_review_root=$QA_WORKTREE
+review_branch=$QA_REVIEW_BRANCH
+branch_state=$QA_BRANCH_STATE
+source_ref=$QA_REF
+app_url=$QA_APP_URL
+compose_project=$QA_COMPOSE_PROJECT
+database_name=$QA_DB_NAME
+state_file=$QA_METADATA_DIR/qa-env.env
+run_summary=$QA_ARTIFACTS_DIR/run.md
+run_log=$QA_ARTIFACTS_DIR/run.log
+
+next_steps:
+- For code changes, open a Codex session rooted at: $QA_WORKTREE
+- Continue implementation on local review branch: $QA_REVIEW_BRANCH
+- For repo commands in the current thread: scripts/qa-env.sh repo --slug $QA_SLUG -- <command>
+- For git commands in the current thread: scripts/qa-env.sh git --slug $QA_SLUG -- <git args>
+- For compose commands in the current thread: scripts/qa-env.sh compose --slug $QA_SLUG -- <compose args>
+- For app-container commands in the current thread: scripts/qa-env.sh test --slug $QA_SLUG -- <command>
+- To inspect local changes: scripts/qa-env.sh git --slug $QA_SLUG -- status --short
+- To commit follow-up fixes: scripts/qa-env.sh git --slug $QA_SLUG -- commit -m "<message>"
+- To publish the review branch: scripts/qa-env.sh git --slug $QA_SLUG -- push -u origin $QA_REVIEW_BRANCH
+EOF
+}
+
+cmd_repo() {
+  parse_env_selector_args "$@"
+  [ "${#REMAINING_ARGS[@]}" -gt 0 ] || die "Provide a command after -- for repo."
+
+  load_state_from_args "$PARSED_BASE_DIR" "$PARSED_SLUG" "$PARSED_ENV_ROOT"
+  run_in_dir_logged "$QA_WORKTREE" "${REMAINING_ARGS[@]}"
+}
+
+cmd_git() {
+  parse_env_selector_args "$@"
+  [ "${#REMAINING_ARGS[@]}" -gt 0 ] || die "Provide git arguments after -- for git."
+
+  load_state_from_args "$PARSED_BASE_DIR" "$PARSED_SLUG" "$PARSED_ENV_ROOT"
+  run_in_dir_logged "$QA_WORKTREE" git -C "$QA_WORKTREE" "${REMAINING_ARGS[@]}"
+}
+
+cmd_compose() {
+  parse_env_selector_args "$@"
+  [ "${#REMAINING_ARGS[@]}" -gt 0 ] || die "Provide compose arguments after -- for compose."
+
+  load_state_from_args "$PARSED_BASE_DIR" "$PARSED_SLUG" "$PARSED_ENV_ROOT"
+  run_in_dir_logged "$QA_WORKTREE" docker compose -p "$QA_SLUG" "${REMAINING_ARGS[@]}"
 }
 
 cmd_test() {
@@ -928,7 +1137,9 @@ profile=$QA_PROFILE
 profile_requested=$QA_PROFILE_REQUESTED
 profile_source=$QA_PROFILE_SOURCE
 repo=$QA_REPO
-ref=$QA_REF
+source_ref=$QA_REF
+review_branch=$QA_REVIEW_BRANCH
+branch_state=$QA_BRANCH_STATE
 base_ref=$QA_BASE_REF
 merge_base=$QA_MERGE_BASE
 worktree=$QA_WORKTREE
@@ -1015,6 +1226,22 @@ main() {
     up)
       shift
       cmd_up "$@"
+      ;;
+    handoff)
+      shift
+      cmd_handoff "$@"
+      ;;
+    repo)
+      shift
+      cmd_repo "$@"
+      ;;
+    git)
+      shift
+      cmd_git "$@"
+      ;;
+    compose)
+      shift
+      cmd_compose "$@"
       ;;
     test)
       shift
