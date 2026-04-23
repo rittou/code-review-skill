@@ -8,10 +8,13 @@ Codex skill for two focused Shopware workflows:
 ## What is special here
 
 - one QA namespace per PR or ticket
-- named QA-branch worktree at `~/qa/<slug>/worktree`
-- Docker, OrbStack URL, and database all use the same slug
+- stable QA runtime root at `~/qa/<slug>`
+- auto reuse of the current linked/system worktree when it already matches the Shopware repo
+- source-root `.qa/current` pointer back to the runtime root for quick reopening from the active checkout
+- Docker and OrbStack URLs use the same slug while the database stays on the familiar `shopware` name inside each isolated DB container
 - demo data implies indexing when storefront visibility depends on it
-- the same worktree can continue into follow-up fixes and retesting
+- demo data can trigger storefront-ready verification so seeded products are proven visible, not just generated
+- the same source worktree can continue into follow-up fixes and retesting
 
 ## Repo layout
 
@@ -66,6 +69,7 @@ Typical flow:
 scripts/qa-env.sh create \
   --repo ~/work/shopware-main \
   --ref origin/pull/123/head \
+  --source-root-mode auto \
   --branch qa/pr-123-swag-456 \
   --pr 123 \
   --ticket SWAG-456
@@ -81,8 +85,11 @@ scripts/qa-env.sh cleanup --slug pr-123-swag-456
 The helper supports:
 
 - `auto`, `fe-light`, `be-light`, `be-fresh`, `search-indexed`
+- `auto`, `managed`, `system`, and `current` source-root selection
 - named QA branches for follow-up fixes
-- access output with worktree path, branch, URL, DB, and next steps
+- access output with source root, runtime root, app/adminer/mailer URLs, full DB access details, and next steps
+- `.qa/current` and `.qa/<slug>` pointers inside the active source root
+- optional storefront-ready verification after setup, demo data, and indexing
 
 ## References
 
